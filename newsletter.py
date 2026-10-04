@@ -285,7 +285,7 @@ def render(stories, title, site_title, worth=()):
     body = ""
     for n, s in enumerate(stories, 1):
         pts = "".join(f"<li>{html.escape(p)}</li>" for p in s["points"])
-        lks = "".join(f'<a href="{html.escape(l)}">出典{k}</a>' for k, l in enumerate(s["links"], 1))
+        lks = "".join(f'<a href="{html.escape(l)}">Source {k}</a>' for k, l in enumerate(s["links"], 1))
         body += f"<h2>{n}. {html.escape(s['headline'])}</h2><ul>{pts}</ul><p class=src>{lks}</p>"
     if worth:
         body += "<section class=worth><h2>Worth Reading</h2><ul>"
@@ -294,7 +294,7 @@ def render(stories, title, site_title, worth=()):
                      f"<p>{html.escape(w.get('blurb',''))}</p></li>")
         body += "</ul></section>"
     return (f"{HEAD}<title>{html.escape(title)}</title>{FONTS}<style>{ISSUE_CSS}</style><main><a class=back href=\"../\">&larr; {html.escape(site_title)}</a>"
-            f"<h1>{html.escape(title)}</h1>{body}<footer>AIによる要約を含みます。詳細は出典をご確認ください。</footer></main>")
+            f"<h1>{html.escape(title)}</h1>{body}<footer>Summaries are AI-generated. See the sources for details.</footer></main>")
 
 def issue_title(today, edition):
     label = {"morning": "Morning", "evening": "Evening"}.get(edition, edition.capitalize())
