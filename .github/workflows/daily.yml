@@ -1,7 +1,6 @@
 name: Daily Brief
 on:
-  schedule:
-    - cron: "30 22 * * *"   # 毎朝 07:30 JST（UTC 22:30）。Actionsの定時実行は数分〜十数分遅れることがある
+  # 定時実行は無効。毎朝の作成はローカルのClaude Codeタスクが行い、Actionsはソース取得の確認（stage=prepare）用
   workflow_dispatch:
     inputs:
       stage:
