@@ -245,22 +245,78 @@ def summarize_with_claude(chosen, key):
     data = json.loads(text[text.index("["): text.rindex("]") + 1])
     return [{**d, "links": to_story(c)["links"]} for d, c in zip(data, chosen)]
 
-# ---- 描画 ----
-CSS = "body{font-family:-apple-system,'Hiragino Sans',sans-serif;max-width:640px;margin:2rem auto;padding:0 1rem;line-height:1.7;color:#222}h1{font-size:1.4rem}h2{font-size:1.1rem;margin-top:2rem}a{color:#0a58ca}"
+# ---- 描画（ダークモードのみ） ----
+FONTS = ("<link rel=preconnect href='https://fonts.googleapis.com'><link rel=preconnect href='https://fonts.gstatic.com' crossorigin>"
+         "<link href='https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700&display=swap' rel=stylesheet>")
+BASE_CSS = """
+:root{--bg:#121212;--fg:#f2f2f2;--muted:#a3a3a3;--accent:#8b9be0;--line:#4a5fa8;--rule:#2c2c2c;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:Manrope,'Noto Sans JP',-apple-system,'Hiragino Sans',sans-serif;line-height:1.8;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+"""
+INDEX_CSS = BASE_CSS + """
+main{max-width:1060px;margin:0 auto;padding:130px 24px 120px}
+h1{font-size:2.1rem;line-height:1.3;margin:0 0 1.6rem;font-weight:700;letter-spacing:.01em}
+.lead{color:#b5b5b5;font-size:1.1rem;line-height:2;margin:0 0 5.5rem}
+.feed{display:grid;grid-template-columns:140px 1fr;gap:0 24px}
+.label{color:var(--accent);font-size:1.05rem;padding-top:.15rem}
+ol{list-style:none;margin:0;padding:0 0 0 0;border-left:1px solid var(--line)}
+li{display:grid;grid-template-columns:150px 1fr;gap:0 24px;padding:0 0 3.2rem 0}
+time{text-align:right;color:var(--accent);font-size:.92rem;padding-top:.25rem;font-variant-numeric:tabular-nums;letter-spacing:.02em}
+li h2{font-size:1.28rem;line-height:1.5;margin:0 0 .9rem;font-weight:700}
+li a:hover h2{color:var(--accent)}
+li p{margin:0;color:var(--muted);font-size:.97rem;line-height:1.95}
+@media(max-width:760px){main{padding:72px 20px 80px}.lead{margin-bottom:3rem}.feed{grid-template-columns:1fr}.label{margin-bottom:1.2rem}ol{border-left:0}li{grid-template-columns:1fr;padding-bottom:2.4rem}time{text-align:left;margin-bottom:.4rem}}
+"""
+ISSUE_CSS = BASE_CSS + """
+main{max-width:760px;margin:0 auto;padding:72px 24px 120px}
+.back{color:var(--accent);font-size:.9rem}
+h1{font-size:1.7rem;line-height:1.35;margin:1.6rem 0 2.4rem;font-weight:700}
+h2{font-size:1.15rem;line-height:1.55;margin:2.6rem 0 .8rem;font-weight:700}
+ul{margin:0;padding-left:1.2rem;color:#d6d6d6}li{margin:.35rem 0}
+.src{margin:.7rem 0 0;font-size:.85rem;color:var(--muted)}.src a{color:var(--accent);margin-right:.9rem}
+.worth{margin-top:4rem;border-top:1px solid var(--rule);padding-top:1.4rem}.worth h2{margin-top:0}
+.worth li{margin:0 0 1.3rem;list-style:none}.worth ul{padding:0}.worth a{color:var(--accent)}.worth .by{color:var(--muted);font-size:.85rem}.worth p{margin:.2rem 0 0;color:#cfcfcf;font-size:.95rem}
+footer{margin-top:4rem;border-top:1px solid var(--rule);padding-top:1rem;color:#7a7a7a;font-size:.8rem}
+"""
+HEAD = "<!doctype html><html lang=ja><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><meta name=robots content='noindex,nofollow'><meta name=color-scheme content=dark>"
+
 def render(stories, title, site_title, worth=()):
     body = ""
     for n, s in enumerate(stories, 1):
         pts = "".join(f"<li>{html.escape(p)}</li>" for p in s["points"])
-        lks = " ".join(f'<a href="{html.escape(l)}">出典</a>' for l in s["links"])
-        body += f"<h2>{n}. {html.escape(s['headline'])}</h2><ul>{pts}</ul><p>{lks}</p>"
+        lks = "".join(f'<a href="{html.escape(l)}">出典{k}</a>' for k, l in enumerate(s["links"], 1))
+        body += f"<h2>{n}. {html.escape(s['headline'])}</h2><ul>{pts}</ul><p class=src>{lks}</p>"
     if worth:
-        body += "<h2 style='margin-top:3rem;border-top:2px solid #222;padding-top:1rem'>Worth Reading</h2><ul style='padding-left:1.2rem'>"
+        body += "<section class=worth><h2>Worth Reading</h2><ul>"
         for w in worth:
-            body += (f"<li style='margin-bottom:1rem'><a href=\"{html.escape(w['link'])}\">{html.escape(w['title'])}</a>"
-                     f" <span style='color:#777;font-size:.85rem'>— {html.escape(w['source'])}</span><br>{html.escape(w.get('blurb',''))}</li>")
-        body += "</ul>"
-    return (f"<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><meta name=robots content='noindex,nofollow'><title>{title}</title>"
-            f"<style>{CSS}</style><h1>{title}</h1>{body}<hr><p style='font-size:.8rem;color:#777'>{site_title} / AIによる要約を含みます。詳細は出典をご確認ください。</p>")
+            body += (f"<li><a href=\"{html.escape(w['link'])}\">{html.escape(w['title'])}</a> <span class=by>— {html.escape(w['source'])}</span>"
+                     f"<p>{html.escape(w.get('blurb',''))}</p></li>")
+        body += "</ul></section>"
+    return (f"{HEAD}<title>{html.escape(title)}</title>{FONTS}<style>{ISSUE_CSS}</style><main><a class=back href=\"../\">&larr; {html.escape(site_title)}</a>"
+            f"<h1>{html.escape(title)}</h1>{body}<footer>AIによる要約を含みます。詳細は出典をご確認ください。</footer></main>")
+
+def issue_title(today, edition):
+    label = {"morning": "Morning", "evening": "Evening"}.get(edition, edition.capitalize())
+    return f"What to know on the {label} of {today.strftime('%B')} {today.day}, {today.year}"
+
+def render_index(cfg, site_dir="site"):
+    """site/paper/ の各号から、日付・タイトル・冒頭の話題を拾って一覧ページを作る。"""
+    rows = []
+    for f in sorted(os.listdir(f"{site_dir}/paper"), reverse=True):
+        if not f.endswith(".html"): continue
+        doc = open(f"{site_dir}/paper/{f}", encoding="utf-8").read()
+        m = re.match(r"(\d{4})(\d{2})(\d{2})-", f)
+        if not m: continue
+        t = re.search(r"<h1>(.*?)</h1>", doc, re.S)
+        heads = [html.unescape(h) for h in re.findall(r"<h2>\d+\. (.*?)</h2>", doc, re.S)][:3]
+        ex = " / ".join(heads)
+        ex = ex if len(ex) <= 150 else ex[:150].rstrip() + "…"
+        rows.append((f"{m[1]}.{m[2]}.{m[3]}", t.group(1) if t else f, f"paper/{f}", ex))
+    items = "".join(f"<li><time>{d}</time><div><a href=\"{href}\"><h2>{t}</h2></a><p>{html.escape(ex)}</p></div></li>" for d, t, href, ex in rows)
+    return (f"{HEAD}<title>{html.escape(cfg['title'])}</title>{FONTS}<style>{INDEX_CSS}</style><main>"
+            f"<h1>{html.escape(cfg['title'])}</h1><p class=lead>Here's what to know about the world today.</p>"
+            f"<section class=feed><div class=label>Latest</div><ol>{items}</ol></section></main>")
 
 
 # ---- リンク検査・サイト書き出し ----
@@ -296,8 +352,7 @@ def drop_dead_links(stories, worth, log=print):
     return kept, [w for w in worth if res[w["link"]][0]]
 
 def write_site(stories, worth, edition, cfg, today):
-    label = {"morning": "朝", "evening": "夕"}.get(edition, edition)
-    title = f"{today.year}年{today.month}月{today.day}日 {label}の注目ニュース"
+    title = issue_title(today, edition)
     os.makedirs("site/paper", exist_ok=True)
     stamp = today.strftime("%Y%m%d")
     page = f"site/paper/{stamp}-{edition}.html"
@@ -305,8 +360,5 @@ def write_site(stories, worth, edition, cfg, today):
     open(page, "w", encoding="utf-8").write(doc)
     os.makedirs("email", exist_ok=True)  # メール用は公開サイトに置かない
     open(f"email/{stamp}-{edition}.html", "w", encoding="utf-8").write(doc)
-    idx = sorted(os.listdir("site/paper"))[::-1]
-    open("site/index.html", "w", encoding="utf-8").write(
-        f"<!doctype html><meta charset=utf-8><meta name=robots content='noindex,nofollow'><title>{cfg['title']}</title><body style='font-family:sans-serif;max-width:640px;margin:2rem auto'><h1>{cfg['title']}</h1><ul>"
-        + "".join(f"<li><a href='paper/{f}'>{f[:-5]}</a></li>" for f in idx) + "</ul>")
+    open("site/index.html", "w", encoding="utf-8").write(render_index(cfg))
     return page

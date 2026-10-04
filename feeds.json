@@ -1,5 +1,5 @@
 {
-  "title": "Daily Brief",
+  "title": "What to know",
   "per_source": 6,
   "pick": 5,
   "exclude_keywords": ["天気", "気象", "台風", "大雨", "豪雨", "猛暑", "熱中症", "警報", "注意報", "降雪", "大雪", "梅雨", "weather", "forecast", "typhoon", "hurricane", "storm"],
