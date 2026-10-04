@@ -10,7 +10,9 @@ import datetime, json, os, sys
 import newsletter as nl
 
 cfg = nl.load_cfg()
-today = datetime.date.today()
+# 過去号の作り直し用: ISSUE_DATE=2026-10-03 ISSUE_AS_OF=2026-10-03T08:00:00+09:00 python3 daily.py prepare morning
+today = datetime.date.fromisoformat(os.environ["ISSUE_DATE"]) if os.environ.get("ISSUE_DATE") else datetime.date.today()
+AS_OF = datetime.datetime.fromisoformat(os.environ["ISSUE_AS_OF"]) if os.environ.get("ISSUE_AS_OF") else None
 
 def current_edition():
     """朝刊(8:00)=12時前に作る / 夕刊(18:00)=12時以降。引数で上書き可。"""
@@ -21,12 +23,18 @@ def workdir(edition): return f"work/{today.strftime('%Y%m%d')}-{edition}"
 def prepare(edition):
     work = workdir(edition)
     os.makedirs(work, exist_ok=True)
-    items = nl.collect(cfg, log=lambda m: print(m, file=sys.stderr))
-    ops = nl.collect_opinion(cfg, log=lambda m: print(m, file=sys.stderr))
+    log = lambda m: print(m, file=sys.stderr)
+    if AS_OF:  # 過去号: RSSを深めに取り、公開時刻より前の記事だけを残す（日付のない記事は時点が不明なので除外）
+        deep = {**cfg, "per_source": 40}
+        items = [i for i in nl.collect(deep, log=log) if i["date"] and AS_OF - datetime.timedelta(hours=72) <= datetime.datetime.fromisoformat(i["date"]) <= AS_OF]
+        ops = [o for o in nl.collect_opinion(cfg, now=AS_OF, days=21, log=log) if not o["date"] or datetime.datetime.fromisoformat(o["date"]) <= AS_OF]
+    else:
+        items = nl.collect(cfg, log=log)
+        ops = nl.collect_opinion(cfg, log=log)
     json.dump(items, open(f"{work}/candidates.json", "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     json.dump(ops, open(f"{work}/opinion.json", "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     prof = nl.load_profile("default"); prof["pick"] = 30
-    chosen = nl.select(items, prof, noise=cfg["noise_keywords"], source_weights={s["name"]: s["weight"] for s in cfg["sources"] if "weight" in s})
+    chosen = nl.select(items, prof, now=AS_OF, noise=cfg["noise_keywords"], source_weights={s["name"]: s["weight"] for s in cfg["sources"] if "weight" in s})
     out = [f"# ブリーフ {today} {edition}（候補{len(items)}件 / オピニオン{len(ops)}件）", ""]
     if edition == "evening":
         out += ["**夕刊（18:00号）です。** 朝刊からの続報・新しい出来事を中心に選ぶこと。朝刊と同じ話題は、新しい展開がある場合だけ取り上げ、その展開を書く。", "", "## 今朝の朝刊の話題（重複を避ける）"]
