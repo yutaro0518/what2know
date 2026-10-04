@@ -1,0 +1,6 @@
+__pycache__/
+work/
+*.bak
+stories*.json
+.DS_Store
+email/

@@ -1,0 +1,153 @@
+{
+  "_help": "調整つまみ。category_weights: ジャンルの重み(0で除外) / min_per_category: 最低本数 / max_per_category: 最大本数 / coverage_weight: 複数媒体が報じた話題をどれだけ優先するか(0で無視) / max_age_hours: 古い記事の足切り / max_per_source: 同一媒体の上限(幅の確保) / boost_keywords: 含むと加点",
+  "default": {
+    "pick": 12,
+    "category_weights": {
+      "総合": 0.6,
+      "政治": 1.0,
+      "経済": 1.0,
+      "国際": 1.0,
+      "テック": 1.2,
+      "AI": 1.4,
+      "科学": 0.6,
+      "サッカー": 0.6
+    },
+    "min_per_category": {
+      "国際": 1,
+      "経済": 1,
+      "AI": 2,
+      "テック": 2,
+      "サッカー": 1
+    },
+    "max_per_category": {
+      "AI": 3,
+      "テック": 3,
+      "政治": 2,
+      "サッカー": 2
+    },
+    "coverage_weight": 1.0,
+    "max_age_hours": 72,
+    "max_per_source": 2,
+    "boost_keywords": [],
+    "worth_reading": 4
+  },
+  "ai_focus": {
+    "pick": 5,
+    "category_weights": {
+      "総合": 0.3,
+      "政治": 0.5,
+      "経済": 0.6,
+      "国際": 0.5,
+      "テック": 2.0,
+      "AI": 3.0,
+      "科学": 1.0,
+      "サッカー": 0.0
+    },
+    "min_per_category": {
+      "AI": 3
+    },
+    "max_per_category": {},
+    "coverage_weight": 1.0,
+    "max_age_hours": 72,
+    "max_per_source": 2,
+    "boost_keywords": [],
+    "worth_reading": 4
+  },
+  "business": {
+    "pick": 5,
+    "category_weights": {
+      "総合": 0.3,
+      "政治": 0.6,
+      "経済": 2.0,
+      "国際": 0.6,
+      "テック": 0.8,
+      "AI": 0.8,
+      "科学": 0.0,
+      "サッカー": 0.5
+    },
+    "min_per_category": {
+      "経済": 3
+    },
+    "max_per_category": {
+      "AI": 1
+    },
+    "coverage_weight": 1.0,
+    "max_age_hours": 72,
+    "max_per_source": 2,
+    "boost_keywords": [],
+    "worth_reading": 4
+  },
+  "world": {
+    "pick": 5,
+    "category_weights": {
+      "総合": 0.3,
+      "政治": 1.0,
+      "経済": 0.6,
+      "国際": 2.0,
+      "テック": 0.3,
+      "AI": 0.3,
+      "科学": 0.3,
+      "サッカー": 0.5
+    },
+    "min_per_category": {
+      "国際": 3
+    },
+    "max_per_category": {
+      "AI": 1,
+      "テック": 0
+    },
+    "coverage_weight": 1.0,
+    "max_age_hours": 72,
+    "max_per_source": 2,
+    "boost_keywords": [],
+    "worth_reading": 4
+  },
+  "no_ai": {
+    "pick": 5,
+    "category_weights": {
+      "総合": 0.6,
+      "政治": 1.0,
+      "経済": 1.0,
+      "国際": 1.0,
+      "テック": 0.7,
+      "AI": 0.0,
+      "科学": 0.6,
+      "サッカー": 0.5
+    },
+    "min_per_category": {},
+    "max_per_category": {},
+    "coverage_weight": 1.0,
+    "max_age_hours": 72,
+    "max_per_source": 2,
+    "boost_keywords": [],
+    "worth_reading": 4
+  },
+  "wide": {
+    "pick": 8,
+    "category_weights": {
+      "総合": 0.8,
+      "政治": 1.0,
+      "経済": 1.0,
+      "国際": 1.0,
+      "テック": 1.0,
+      "AI": 1.0,
+      "科学": 1.0,
+      "サッカー": 0.5
+    },
+    "min_per_category": {
+      "国際": 1,
+      "経済": 1,
+      "AI": 1,
+      "科学": 1
+    },
+    "max_per_category": {
+      "国際": 2,
+      "AI": 2
+    },
+    "coverage_weight": 0.5,
+    "max_age_hours": 72,
+    "max_per_source": 1,
+    "boost_keywords": [],
+    "worth_reading": 4
+  }
+}
