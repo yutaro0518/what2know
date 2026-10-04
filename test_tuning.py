@@ -136,6 +136,24 @@ class Clustering(unittest.TestCase):
             if not common and not any(len(a & b) >= 2 for a in sigs for b in sigs if a is not b): impure += 1
         self.assertLessEqual(impure, max(1, total // 3), f"{impure}/{total}")
 
+class Editions(unittest.TestCase):
+    def test_issue_titles(self):
+        import datetime
+        self.assertEqual(nl.issue_title(datetime.date(2026, 10, 4), "morning"), "What to know on the Morning of October 4, 2026")
+        self.assertEqual(nl.issue_title(datetime.date(2026, 10, 4), "evening"), "What to know on the Evening of October 4, 2026")
+
+    def test_index_orders_evening_above_morning(self):
+        import os, re, tempfile
+        d = tempfile.mkdtemp(); os.makedirs(d + "/paper")
+        for n in ("20261004-morning.html", "20261004-evening.html", "20261003-evening.html"):
+            open(f"{d}/paper/{n}", "w").write("<h1>x</h1><h2>1. a</h2>")
+        hrefs = re.findall(r'href="(paper/[^"]*)"', nl.render_index(CFG, d))
+        self.assertEqual(hrefs, ["paper/20261004-evening.html", "paper/20261004-morning.html", "paper/20261003-evening.html"])
+
+    def test_dark_only_and_source_label(self):
+        out = nl.render([{"headline": "h", "points": ["p"], "links": ["https://a/1", "https://a/2"]}], "T", "S")
+        self.assertIn("color-scheme:dark", out); self.assertIn(">Source 1<", out); self.assertNotIn("出典", out)
+
 class AgentEdit(unittest.TestCase):
     """Claude API役の出力を検証する層。偽の応答で、推測URLを弾いてやり直させることを確認する。"""
     def test_fabricated_url_rejected_then_fixed(self):

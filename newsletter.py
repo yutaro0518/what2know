@@ -303,7 +303,8 @@ def issue_title(today, edition):
 def render_index(cfg, site_dir="site"):
     """site/paper/ の各号から、日付・タイトル・冒頭の話題を拾って一覧ページを作る。"""
     rows = []
-    for f in sorted(os.listdir(f"{site_dir}/paper"), reverse=True):
+    order = lambda f: (f[:8], {"morning": 0, "evening": 1}.get(f[9:].split(".")[0], 0))
+    for f in sorted(os.listdir(f"{site_dir}/paper"), key=order, reverse=True):
         if not f.endswith(".html"): continue
         doc = open(f"{site_dir}/paper/{f}", encoding="utf-8").read()
         m = re.match(r"(\d{4})(\d{2})(\d{2})-", f)

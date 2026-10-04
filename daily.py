@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """毎朝の発行フロー（Claudeが編集者として回す想定）。
-  python3 daily.py prepare                      # 収集して work/YYYYMMDD/ に候補とブリーフを書く
-  python3 daily.py publish work/YYYYMMDD/stories.json   # 検証→リンク検査→HTML生成
-  python3 daily.py deploy                       # site/ をGitHubにpush（Pagesで公開）
+  python3 daily.py prepare [morning|evening]   # 収集して work/YYYYMMDD-<edition>/ に候補とブリーフを書く
+  python3 daily.py publish work/YYYYMMDD-<edition>/stories.json [edition]   # 検証→リンク検査→HTML生成
+  python3 daily.py deploy [edition]            # site/ をGitHubにpush（Pagesで公開）
+edition を省略すると、現在時刻（12時前=morning、以降=evening）で決まる。
 stories.json は {"stories":[{headline,points,links}], "worth_reading":[{title,source,link,blurb}]}
 links は必ず candidates.json / opinion.json にあるURLだけ（推測で書いたURLは publish が拒否する）。"""
 import datetime, json, os, sys
@@ -10,9 +11,15 @@ import newsletter as nl
 
 cfg = nl.load_cfg()
 today = datetime.date.today()
-work = f"work/{today.strftime('%Y%m%d')}"
 
-def prepare():
+def current_edition():
+    """朝刊(8:00)=12時前に作る / 夕刊(18:00)=12時以降。引数で上書き可。"""
+    return "morning" if datetime.datetime.now().hour < 12 else "evening"
+
+def workdir(edition): return f"work/{today.strftime('%Y%m%d')}-{edition}"
+
+def prepare(edition):
+    work = workdir(edition)
     os.makedirs(work, exist_ok=True)
     items = nl.collect(cfg, log=lambda m: print(m, file=sys.stderr))
     ops = nl.collect_opinion(cfg, log=lambda m: print(m, file=sys.stderr))
@@ -20,7 +27,18 @@ def prepare():
     json.dump(ops, open(f"{work}/opinion.json", "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     prof = nl.load_profile("default"); prof["pick"] = 30
     chosen = nl.select(items, prof, noise=cfg["noise_keywords"], source_weights={s["name"]: s["weight"] for s in cfg["sources"] if "weight" in s})
-    out = [f"# ブリーフ {today}（候補{len(items)}件 / オピニオン{len(ops)}件）", "", "## 複数媒体が報じた話題（自動クラスタ。誤結合あり、必ず中身を読んで判断）"]
+    out = [f"# ブリーフ {today} {edition}（候補{len(items)}件 / オピニオン{len(ops)}件）", ""]
+    if edition == "evening":
+        out += ["**夕刊（18:00号）です。** 朝刊からの続報・新しい出来事を中心に選ぶこと。朝刊と同じ話題は、新しい展開がある場合だけ取り上げ、その展開を書く。", "", "## 今朝の朝刊の話題（重複を避ける）"]
+        mp = f"site/paper/{today.strftime('%Y%m%d')}-morning.html"
+        if os.path.exists(mp):
+            import re, html as _h
+            doc = open(mp, encoding="utf-8").read()
+            out += [f"- {_h.unescape(h)}" for h in re.findall(r"<h2>\d+\. (.*?)</h2>", doc)]
+        else:
+            out.append("- （朝刊が見つかりません）")
+        out.append("")
+    out += ["## 複数媒体が報じた話題（自動クラスタ。誤結合あり、必ず中身を読んで判断）"]
     for k, c in enumerate(chosen, 1):
         out.append(f"\n### {k}. [{c['category']}] 媒体{len(c['sources'])} 得点{c['score']:.1f}")
         for m in c["members"][:5]:
@@ -41,7 +59,8 @@ def prepare():
     print("ソース別件数:", ", ".join(f"{k}={v}" for k, v in sorted(per.items())))
     if zero: print("::warning::取得0件のソース: " + ", ".join(zero))
 
-def publish(path):
+def publish(path, edition):
+    work = workdir(edition)
     data = json.load(open(path, encoding="utf-8"))
     stories, worth = data["stories"], data.get("worth_reading", [])
     pool = {i["link"].split("?")[0] for i in json.load(open(f"{work}/candidates.json", encoding="utf-8"))}
@@ -50,16 +69,16 @@ def publish(path):
     if unknown: sys.exit("収集結果にないURLがあります（推測で書いていませんか）:\n" + "\n".join(unknown))
     stories, worth = nl.drop_dead_links(stories, worth, log=lambda m: print(m, file=sys.stderr))
     print(f"話題{len(stories)}本 / Worth Reading {len(worth)}本")
-    print("生成:", nl.write_site(stories, worth, "morning", cfg, today))
+    print("生成:", nl.write_site(stories, worth, edition, cfg, today))
 
-def deploy():
+def deploy(edition):
     """site/ をコミットして main にpush。GitHub Actionsが Pages に公開する。"""
     import subprocess
     run = lambda *a: subprocess.run(a, capture_output=True, text=True)
     run("git", "add", "site")
     if run("git", "diff", "--cached", "--quiet").returncode == 0:
         print("変更なし。pushしません"); return
-    msg = f"Daily Brief {today.isoformat()}\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
+    msg = f"What to know: {edition} {today.isoformat()}\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
     r = run("git", "commit", "-m", msg)
     if r.returncode: sys.exit(r.stderr or r.stdout)
     r = run("git", "pull", "--rebase", "origin", "main")
@@ -68,7 +87,8 @@ def deploy():
     print("公開: https://yutaro0518.github.io/what2know/")
 
 if __name__ == "__main__":
-    if len(sys.argv) >= 2 and sys.argv[1] == "prepare": prepare()
-    elif len(sys.argv) == 3 and sys.argv[1] == "publish": publish(sys.argv[2])
-    elif len(sys.argv) == 2 and sys.argv[1] == "deploy": deploy()
+    ed = lambda i: sys.argv[i] if len(sys.argv) > i else current_edition()
+    if len(sys.argv) >= 2 and sys.argv[1] == "prepare": prepare(ed(2))
+    elif len(sys.argv) >= 3 and sys.argv[1] == "publish": publish(sys.argv[2], ed(3))
+    elif len(sys.argv) >= 2 and sys.argv[1] == "deploy": deploy(ed(2))
     else: sys.exit(__doc__)
