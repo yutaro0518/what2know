@@ -24,7 +24,7 @@ def prepare():
     for k, c in enumerate(chosen, 1):
         out.append(f"\n### {k}. [{c['category']}] 媒体{len(c['sources'])} 得点{c['score']:.1f}")
         for m in c["members"][:5]:
-            out.append(f"- ({m['source']}) {m['title']} | {m["desc"][:120]} | {m['link']}")
+            out.append(f"- ({m['source']}) {m['title']} | {m['desc'][:120]} | {m['link']}")
     for cat in ("AI", "テック", "サッカー"):
         out.append(f"\n## {cat}（ジャンル別の全候補）")
         for i in items:
