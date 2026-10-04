@@ -34,7 +34,12 @@ def prepare():
     for o in ops:
         out.append(f"- ({o['source']}) {o['title']} | {o['desc'][:140]} | {o['link']}")
     open(f"{work}/brief.md", "w", encoding="utf-8").write("\n".join(out))
-    print(f"{work}/brief.md を書きました（{len(items)}件）")
+    print(f"{work}/brief.md を書きました（{len(items)}件 / オピニオン{len(ops)}件）")
+    per = {}
+    for i in items: per[i["source"]] = per.get(i["source"], 0) + 1
+    zero = [s["name"] for s in cfg["sources"] if per.get(s["name"], 0) == 0]
+    print("ソース別件数:", ", ".join(f"{k}={v}" for k, v in sorted(per.items())))
+    if zero: print("::warning::取得0件のソース: " + ", ".join(zero))
 
 def publish(path):
     data = json.load(open(path, encoding="utf-8"))

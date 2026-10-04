@@ -136,5 +136,31 @@ class Clustering(unittest.TestCase):
             if not common and not any(len(a & b) >= 2 for a in sigs for b in sigs if a is not b): impure += 1
         self.assertLessEqual(impure, max(1, total // 3), f"{impure}/{total}")
 
+class AgentEdit(unittest.TestCase):
+    """Claude API役の出力を検証する層。偽の応答で、推測URLを弾いてやり直させることを確認する。"""
+    def test_fabricated_url_rejected_then_fixed(self):
+        import os, shutil, tempfile, agent_edit as ae
+        urls = sorted({i["link"].split("?")[0] for i in ITEMS})[:40]
+        story = lambda n: {"headline": f"h{n}", "points": ["p"], "links": [urls[n]]}
+        good = {"stories": [story(n) for n in range(12)], "worth_reading": [{"title": "t", "source": "s", "link": urls[20 + n], "blurb": "b"} for n in range(4)]}
+        bad = json.loads(json.dumps(good)); bad["stories"][0]["links"] = ["https://example.com/fabricated"]
+        calls = []
+        def fake(msgs, system):
+            calls.append(1); return "前置き\n" + json.dumps(bad if len(calls) == 1 else good, ensure_ascii=False)
+        d = tempfile.mkdtemp(); ae.work = d
+        ae.pool_urls = lambda: set(urls)
+        for f in ("brief.md", "candidates.json", "opinion.json"): open(f"{d}/{f}", "w").write("[]" if f.endswith("json") else "x")
+        ae.main(fake)
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(len(json.load(open(f"{d}/stories.json"))["stories"]), 12)
+        shutil.rmtree(d)
+
+    def test_wrong_count_rejected(self):
+        import agent_edit as ae
+        urls = {"https://a/1"}
+        data = {"stories": [{"headline": "h", "points": [], "links": ["https://a/1"]}] * 3, "worth_reading": []}
+        errs = ae.problems(data, urls)
+        self.assertTrue(any("12本" in e for e in errs) and any("4〜5本" in e for e in errs))
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,75 @@
+name: Daily Brief
+on:
+  schedule:
+    - cron: "30 22 * * *"   # 毎朝 07:30 JST（UTC 22:30）。Actionsの定時実行は数分〜十数分遅れることがある
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: "full=作成して公開 / prepare=収集のみ（APIキー不要。ソースの取得確認用）"
+        type: choice
+        options: [full, prepare]
+        default: full
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
+env:
+  TZ: Asia/Tokyo
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Test
+        run: python3 test_tuning.py
+      - name: Collect
+        run: python3 daily.py prepare
+      - name: Edit with Claude
+        if: ${{ inputs.stage != 'prepare' }}
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python3 agent_edit.py
+      - name: Publish (validate + link check + render)
+        if: ${{ inputs.stage != 'prepare' }}
+        run: python3 daily.py publish "work/$(date +%Y%m%d)/stories.json"
+      - name: Commit site
+        if: ${{ inputs.stage != 'prepare' }}
+        run: |
+          git config user.name "daily-brief-bot"
+          git config user.email "daily-brief-bot@users.noreply.github.com"
+          git add site
+          if git diff --cached --quiet; then echo "変更なし"; else
+            git commit -m "Daily Brief $(date +%Y-%m-%d)"
+            git pull --rebase origin main
+            git push origin main
+          fi
+      - name: Keep work files for debugging
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: work
+          path: work/
+          retention-days: 7
+      - uses: actions/configure-pages@v5
+        if: ${{ inputs.stage != 'prepare' }}
+      - uses: actions/upload-pages-artifact@v3
+        if: ${{ inputs.stage != 'prepare' }}
+        with:
+          path: site
+  deploy:
+    needs: build
+    if: ${{ inputs.stage != 'prepare' }}
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
