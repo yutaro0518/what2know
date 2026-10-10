@@ -57,8 +57,15 @@ def prepare(edition):
             if nl.effective_category(i) == cat and not any(n in i["title"].lower() for n in cfg["noise_keywords"]):
                 out.append(f"- ({i['source']}) {i['title']} | {i['desc'][:140]} | {i['link']}")
     out.append("\n## Worth Reading候補（社説・オピニオン）")
+    out.append("**推薦順（AI×人文・仕事・キャリア・社会の論考を優先、媒体は分散）。まずここから選び、残りの一覧も見ること。**")
+    top = nl.rank_opinion(ops, cfg.get("opinion_boost_keywords", []), n=25, max_per_source=5, source_weights=cfg.get("opinion_source_weights"))
+    for o in top:
+        out.append(f"- ★ ({o['source']}) {o['title']} | {o['desc'][:140]} | {o['link']}")
+    out.append("\n### その他の候補")
+    seen = {o["link"] for o in top}
     for o in ops:
-        out.append(f"- ({o['source']}) {o['title']} | {o['desc'][:140]} | {o['link']}")
+        if o["link"] not in seen:
+            out.append(f"- ({o['source']}) {o['title']} | {o['desc'][:140]} | {o['link']}")
     open(f"{work}/brief.md", "w", encoding="utf-8").write("\n".join(out))
     print(f"{work}/brief.md を書きました（{len(items)}件 / オピニオン{len(ops)}件）")
     per = {}

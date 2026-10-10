@@ -116,12 +116,13 @@ def collect_opinion(cfg, now=None, days=14, log=print):
                         "link": g("link"), "date": d.isoformat() if d else None})
     return [o for o in out if o["link"] and o["title"]]
 
-def rank_opinion(items, boost, n=4, max_per_source=1):
+def rank_opinion(items, boost, n=4, max_per_source=1, source_weights=None):
     """APIキーなしの簡易順位づけ: 注目語（AI・テックなど）を含み、概要が長いものを優先し、媒体を分散。Claudeがある場合は判断を任せる。"""
     boost = [k.lower() for k in boost]
     def score(o):
         t = (o["title"] + " " + o["desc"]).lower()
-        return sum(1 for k in boost if re.search(r"\b" + re.escape(k) + r"\b", t)) * 2 + min(len(o["desc"]), 300) / 150
+        return (sum(1 for k in boost if re.search(r"\b" + re.escape(k) + r"\b", t)) * 2 + min(len(o["desc"]), 300) / 150
+                + (source_weights or {}).get(o["source"], 0))
     out, per = [], {}
     for o in sorted(items, key=score, reverse=True):
         if per.get(o["source"], 0) < max_per_source:

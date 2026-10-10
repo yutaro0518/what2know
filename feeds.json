@@ -5,7 +5,8 @@
   "exclude_keywords": ["天気", "気象", "台風", "大雨", "豪雨", "猛暑", "熱中症", "警報", "注意報", "降雪", "大雪", "梅雨", "weather", "forecast", "typhoon", "hurricane", "storm"],
   "noise_keywords": ["deal", "prime day", "coupon", "best ", "how to", "競馬予想", "disrupt 2026", "bloomberg this weekend", "the download", "eムック", "sponsored", "redefining enterprise"],
   "focus_keywords": {"サッカー": ["premier league", "プレミア", "la liga", "laliga", "ラ・リーガ", "ラリーガ", "日本代表", "森保", "サムライブルー", "spain", "スペイン代表", "la roja", "real madrid", "barcelona", "atletico", "アトレティコ", "レアル", "バルセロナ", "arsenal", "liverpool", "manchester", "man city", "man utd", "chelsea", "tottenham", "newcastle", "aston villa", "アーセナル", "リバプール", "マンチェスター", "チェルシー", "トッテナム", "久保", "三笘", "冨安", "遠藤", "鎌田", "南野", "堂安", "板倉", "伊藤洋輝", "町田浩樹", "上田綺世", "古橋", "前田大然", "谷口", "鈴木彩艶", "w杯", "ワールドカップ", "world cup"]},
-  "opinion_boost_keywords": ["ai", "a.i.", "artificial intelligence", "technology", "tech", "openai", "anthropic", "chatgpt", "gates", "silicon valley", "algorithm", "robot", "automation", "data center", "chip", "semiconductor", "science", "economy", "democracy"],
+  "opinion_boost_keywords": ["ai", "a.i.", "artificial intelligence", "technology", "tech", "openai", "anthropic", "chatgpt", "gates", "silicon valley", "algorithm", "robot", "automation", "data center", "chip", "semiconductor", "science", "economy", "democracy", "career", "careers", "jobs", "work", "workers", "humanities", "anthropology", "philosophy", "liberal arts", "education", "skills", "creativity", "meaning", "history", "ethics", "learning", "human"],
+  "opinion_source_weights": {"The Atlantic": 2, "Aeon": 2, "Project Syndicate": 1, "NYT Opinion": 1, "The Economist Leaders": 1},
   "sources": [
     {"name": "NHK 主要ニュース", "category": "総合", "lang": "ja", "url": "https://www3.nhk.or.jp/rss/news/cat0.xml"},
     {"name": "NHK 政治", "category": "政治", "lang": "ja", "url": "https://www3.nhk.or.jp/rss/news/cat4.xml"},
